@@ -1,4 +1,4 @@
-from .base import *  # NOQA
+from .base import *
 
 DEBUG = True
 
@@ -8,8 +8,7 @@ DATABASES = {
         'NAME': 'typeidea',
         'USER': 'root',
         'PASSWORD': 'mathartsys',
-        'HOST': 'godyao.club',
+        'HOST': '127.0.0.1',
         'PORT': 3306,
     }
 }
-
