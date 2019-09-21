@@ -22,3 +22,11 @@ class Comment(models.Model):
 
     class Meta:
         verbose_name = verbose_name_plural = '评论'
+
+    def __str__(self):
+        if len(self.content) > 10:
+            # print(self.content[:10]+'...')
+            return self.content[:10]+'...'
+        else:
+            # print(self.content)
+            return self.content
