@@ -11,6 +11,12 @@ STATUS_ITEMS = (
 
 # Create your models here.
 class Category(models.Model):
+    STATUS_NORMAL = 1
+    STATUS_DELETE = 0
+    STATUS_ITEMS = (
+        (STATUS_NORMAL, '正常'),
+        (STATUS_DELETE, '删除'),
+    )
     name = models.CharField(max_length=50, verbose_name='名称')
     status = models.PositiveSmallIntegerField(default=STATUS_NORMAL, choices=STATUS_ITEMS, verbose_name='状态')
     is_nav = models.BooleanField(default=False, verbose_name='是否为导航')
@@ -22,6 +28,30 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def get_navs(cls):
+        # 两次io
+        # categories = cls.objects.filter(status=cls.STATUS_NORMAL)
+        # nav_categories = categories.filter(is_nav=True)
+        # normal_categories = categories.filter(is_nav=False)
+        # return {
+        #     'navs': nav_categories,
+        #     'categories': normal_categories,
+        # }
+        # 优化
+        categories = cls.objects.filter(status=cls.STATUS_NORMAL)
+        nav_categories = []
+        normal_categories = []
+        for cate in categories:
+            if cate.is_nav:
+                nav_categories.append(cate)
+            else:
+                normal_categories.append(cate)
+        return {
+            'navs': nav_categories,
+            'categories': normal_categories,
+        }
 
 
 class Tag(models.Model):
@@ -38,6 +68,8 @@ class Tag(models.Model):
 
 
 class Post(models.Model):
+    STATUS_NORMAL = 1
+    STATUS_DELETE = 0
     STATUS_DRAFT = 2
     STATUS_ITEMS = (
         (STATUS_NORMAL, '正常'),
@@ -52,6 +84,12 @@ class Post(models.Model):
     tag = models.ManyToManyField(Tag, verbose_name='标签')
     owner = models.ForeignKey(User, verbose_name='作者', on_delete=models.CASCADE)
     created_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    pv = models.PositiveIntegerField(default=1)
+    uv = models.PositiveIntegerField(default=1)
+
+    @classmethod
+    def host_posts(cls):
+        return cls.objects.filter(status=cls.STATUS_NORMAL).order_by('-pv').only('id', 'title')
 
     class Meta:
         verbose_name = verbose_name_plural = '文章'
@@ -59,5 +97,34 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    @staticmethod
+    def get_by_tag(tag_id):
+        try:
+            tag = Tag.objects.get(id=tag_id)
+        except Tag.DoesNotExist:
+            tag = None
+            post_list = []
+        else:
+            post_list = tag.post_set.filter(status=Post.STATUS_NORMAL).select_related('owner', 'category')
+        return post_list, tag
+
+    @staticmethod
+    def get_by_category(category_id):
+        try:
+            category = Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            category = None
+            post_list = []
+        else:
+            post_list = category.post_set.filter(status=Post.STATUS_NORMAL).select_related('owner', 'category')
+        return post_list, category
+
+    @classmethod
+    def latest_posts(cls):
+        query_set = cls.objects.filter(status=Post.STATUS_NORMAL)
+        return query_set
+
+
 
 
